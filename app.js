@@ -516,21 +516,15 @@
   /* ---------------- 标签切换 ---------------- */
   var tabsEl = $("tabs");
   var tabBtns = tabsEl.querySelectorAll(".tab");
-  var panels = {
-    upload: $("panel-upload"),
-    download: $("panel-download"),
-    wallpaper: $("panel-wallpaper"),
-  };
+  var panels = { upload: $("panel-upload"), download: $("panel-download") };
 
   function switchTab(name) {
     tabsEl.setAttribute("data-active", name);
     for (var i = 0; i < tabBtns.length; i++) {
       tabBtns[i].classList.toggle("active", tabBtns[i].getAttribute("data-tab") === name);
     }
-    for (var key in panels) {
-      if (panels[key]) panels[key].classList.toggle("active", key === name);
-    }
-    if (name === "wallpaper" && typeof ensureWallpaper === "function") ensureWallpaper();
+    panels.upload.classList.toggle("active", name === "upload");
+    panels.download.classList.toggle("active", name === "download");
   }
   for (var ti = 0; ti < tabBtns.length; ti++) {
     (function (btn) {
@@ -965,205 +959,65 @@
   });
 
   /* ============================================================
-   * 面板三：随机壁纸
+   * 整页随机背景（每次刷新更换 · 按屏幕方向自适应）
    * ========================================================== */
-  var wpImg = $("wpImg");
-  var wpLoading = $("wpLoading");
-  var wpError = $("wpError");
-  var wpSourcesEl = $("wpSources");
-  var wpOrientsEl = $("wpOrients");
-  var wpOrientField = $("wpOrientField");
-  var wpShuffleBtn = $("wpShuffleBtn");
-  var wpDownloadBtn = $("wpDownload");
-  var wpOpenBtn = $("wpOpen");
+  var bgImg = $("bgImg");
 
-  var WALLPAPER_SOURCES = [
-    {
-      value: "loliapi",
-      label: "LoliAPI",
-      build: function (orient) {
-        var map = { auto: "acg/", pc: "acg/pc/", pe: "acg/pe/", pp: "acg/pp/" };
-        return "https://www.loliapi.com/" + (map[orient] || "acg/");
-      },
-      supportsOrient: true,
-    },
-    { value: "alcy", label: "次元API", build: function () { return "https://t.alcy.cc/mp"; }, supportsOrient: false },
-    { value: "jitsu", label: "Jitsu", build: function () { return "https://moe.jitsu.top/img/"; }, supportsOrient: false },
-  ];
+  // 按屏幕方向返回随机图地址：横屏用 PC 横图，竖屏用手机竖图
+  // 依次尝试多个图源，全部失败则保留渐变光晕作为兜底背景
+  function bgCandidates() {
+    var landscape = window.innerWidth >= window.innerHeight;
+    return [
+      landscape
+        ? "https://www.loliapi.com/acg/pc/"
+        : "https://www.loliapi.com/acg/pe/",
+      "https://moe.jitsu.top/img/",
+      "https://t.alcy.cc/mp",
+    ];
+  }
 
-  var WALLPAPER_ORIENTS = [
-    { value: "auto", label: "自适应" },
-    { value: "pc", label: "横屏" },
-    { value: "pe", label: "竖屏" },
-    { value: "pp", label: "手机壁纸" },
-  ];
+  function withStamp(url) {
+    return url + (url.indexOf("?") > -1 ? "&" : "?") + "_t=" + Date.now();
+  }
 
-  var MIME_EXT = { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/avif": "avif", "image/svg+xml": "svg" };
+  function loadPageBackground() {
+    if (!bgImg) return;
+    var list = bgCandidates();
+    var idx = 0;
+    var settled = false;
+    (function tryNext() {
+      if (settled || idx >= list.length) return;
+      var url = withStamp(list[idx++]);
+      var probe = new Image();
+      probe.onload = function () {
+        if (settled) return;
+        settled = true;
+        bgImg.src = url;
+        raf(function () {
+          bgImg.classList.add("show");
+          document.body.classList.add("bg-ready");
+        });
+      };
+      probe.onerror = tryNext;
+      probe.src = url;
+    })();
+  }
 
-  var wpSource = "loliapi";
-  var wpOrient = "auto";
-  var wpBusy = false;
-  var wpInited = false;
-  var wpBlob = null;
-  var wpBlobUrl = null; // 展示 + 下载共用（blob: 同源，download 属性有效）
-  var wpOpenTarget = ""; // "打开原图" 的目标
+  loadPageBackground();
 
-  (function buildWpSegs() {
-    var h = "";
-    for (var i = 0; i < WALLPAPER_SOURCES.length; i++) {
-      h += '<button class="seg-btn" type="button" data-value="' + WALLPAPER_SOURCES[i].value + '">' + WALLPAPER_SOURCES[i].label + "</button>";
+  // 横竖屏切换时，重新获取与方向匹配的背景
+  var bgLandscape = window.innerWidth >= window.innerHeight;
+  var onBgResize = debounce(function () {
+    var landscape = window.innerWidth >= window.innerHeight;
+    if (landscape !== bgLandscape) {
+      bgLandscape = landscape;
+      bgImg.classList.remove("show");
+      document.body.classList.remove("bg-ready");
+      loadPageBackground();
     }
-    wpSourcesEl.innerHTML = h;
-    var ho = "";
-    for (var j = 0; j < WALLPAPER_ORIENTS.length; j++) {
-      ho += '<button class="seg-btn" type="button" data-value="' + WALLPAPER_ORIENTS[j].value + '">' + WALLPAPER_ORIENTS[j].label + "</button>";
-    }
-    wpOrientsEl.innerHTML = ho;
-  })();
-
-  function syncSeg(container, value) {
-    var btns = container.querySelectorAll(".seg-btn");
-    for (var i = 0; i < btns.length; i++) {
-      btns[i].classList.toggle("active", btns[i].getAttribute("data-value") === value);
-    }
-  }
-
-  function currentSource() {
-    for (var i = 0; i < WALLPAPER_SOURCES.length; i++) {
-      if (WALLPAPER_SOURCES[i].value === wpSource) return WALLPAPER_SOURCES[i];
-    }
-    return WALLPAPER_SOURCES[0];
-  }
-
-  function releaseBlob() {
-    if (wpBlobUrl) {
-      try { URL.revokeObjectURL(wpBlobUrl); } catch (e) {}
-      wpBlobUrl = null;
-    }
-    wpBlob = null;
-  }
-
-  function showLoading() {
-    wpError.classList.remove("show");
-    wpLoading.classList.remove("hide");
-    wpImg.classList.remove("show");
-  }
-  function showError() {
-    wpLoading.classList.add("hide");
-    wpError.classList.add("show");
-  }
-
-  function fetchWallpaper(url, attempt) {
-    attempt = attempt || 0;
-    var u = url + (url.indexOf("?") > -1 ? "&" : "?") + "_t=" + Date.now();
-    return fetch(u, { mode: "cors", cache: "no-store", redirect: "follow" }).then(function (res) {
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      var type = res.headers.get("content-type") || "";
-      if (type.indexOf("image/") !== 0) throw new Error("not-image");
-      return res.blob();
-    }).catch(function (err) {
-      if (attempt < 2) return fetchWallpaper(url, attempt + 1);
-      throw err;
-    });
-  }
-
-  function loadWallpaper() {
-    if (wpBusy) return;
-    wpBusy = true;
-    showLoading();
-    var url = currentSource().build(wpOrient);
-    releaseBlob();
-
-    fetchWallpaper(url)
-      .then(function (blob) {
-        wpBlob = blob;
-        wpBlobUrl = URL.createObjectURL(blob);
-        wpOpenTarget = wpBlobUrl;
-        var pre = new Image();
-        pre.onload = function () {
-          wpImg.src = wpBlobUrl;
-          wpImg.classList.add("show");
-          wpLoading.classList.add("hide");
-          wpBusy = false;
-        };
-        pre.onerror = function () {
-          showError();
-          wpBusy = false;
-        };
-        pre.src = wpBlobUrl;
-      })
-      .catch(function () {
-        // 跨域受限：回退为直接展示原图（img 显示无需 CORS）
-        var fallback = url + (url.indexOf("?") > -1 ? "&" : "?") + "_t=" + Date.now();
-        wpOpenTarget = fallback;
-        var pre = new Image();
-        pre.onload = function () {
-          wpImg.src = fallback;
-          wpImg.classList.add("show");
-          wpLoading.classList.add("hide");
-          wpBusy = false;
-        };
-        pre.onerror = function () {
-          showError();
-          wpBusy = false;
-        };
-        pre.src = fallback;
-      });
-  }
-
-  function ensureWallpaper() {
-    if (wpInited) return;
-    wpInited = true;
-    syncSeg(wpSourcesEl, wpSource);
-    syncSeg(wpOrientsEl, wpOrient);
-    wpOrientField.style.display = currentSource().supportsOrient ? "" : "none";
-    loadWallpaper();
-  }
-
-  wpSourcesEl.addEventListener("click", function (e) {
-    var btn = e.target.closest ? e.target.closest(".seg-btn") : null;
-    if (!btn) return;
-    wpSource = btn.getAttribute("data-value");
-    syncSeg(wpSourcesEl, wpSource);
-    wpOrientField.style.display = currentSource().supportsOrient ? "" : "none";
-    loadWallpaper();
-  });
-  wpOrientsEl.addEventListener("click", function (e) {
-    var btn = e.target.closest ? e.target.closest(".seg-btn") : null;
-    if (!btn) return;
-    wpOrient = btn.getAttribute("data-value");
-    syncSeg(wpOrientsEl, wpOrient);
-    loadWallpaper();
-  });
-
-  wpShuffleBtn.addEventListener("click", function () {
-    if (wpBusy) return;
-    loadWallpaper();
-  });
-
-  wpOpenBtn.addEventListener("click", function () {
-    if (!wpOpenTarget) return;
-    window.open(wpOpenTarget, "_blank", "noopener");
-  });
-
-  wpDownloadBtn.addEventListener("click", function () {
-    if (wpBusy) return;
-    if (wpBlob && wpBlobUrl) {
-      var ext = MIME_EXT[wpBlob.type] || "jpg";
-      var a = document.createElement("a");
-      a.href = wpBlobUrl;
-      a.download = "wallpaper-" + Date.now() + "." + ext;
-      a.rel = "noopener";
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      toast("success", "壁纸已开始下载");
-    } else {
-      toast("info", "该图源限制跨域，已打开原图，长按 / 右键即可保存");
-      if (wpOpenTarget) window.open(wpOpenTarget, "_blank", "noopener");
-    }
-  });
+  }, 400);
+  window.addEventListener("resize", onBgResize);
+  window.addEventListener("orientationchange", onBgResize);
 
   /* ---------------- 页面级错误兜底 ---------------- */
   window.addEventListener("error", function (e) {

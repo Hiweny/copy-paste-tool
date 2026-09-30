@@ -127,7 +127,7 @@ body {
 .aurora {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -3;
   overflow: hidden;
   pointer-events: none;
 }
@@ -283,7 +283,7 @@ main {
 /* ---------- 标签切换 ---------- */
 .tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
   padding: 6px;
   background: var(--surface-2);
@@ -297,14 +297,14 @@ main {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   height: 46px;
   border: none;
   border-radius: 12px;
   background: transparent;
   color: var(--muted);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: color 0.22s ease;
@@ -312,8 +312,8 @@ main {
   white-space: nowrap;
 }
 .tab svg {
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   flex: none;
 }
 .tab.active {
@@ -324,21 +324,15 @@ main {
   z-index: 0;
   top: 6px;
   left: 6px;
-  width: calc((100% - 24px) / 3);
+  width: calc(50% - 6px);
   height: calc(100% - 12px);
   border-radius: 12px;
   background: var(--surface-solid);
   box-shadow: var(--shadow-sm);
   transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
-.tabs[data-active="upload"] .tab-thumb {
-  transform: translateX(0);
-}
 .tabs[data-active="download"] .tab-thumb {
-  transform: translateX(calc(100% + 6px));
-}
-.tabs[data-active="wallpaper"] .tab-thumb {
-  transform: translateX(calc(200% + 12px));
+  transform: translateX(100%);
 }
 
 /* ---------- 卡片 ---------- */
@@ -1028,111 +1022,42 @@ textarea[readonly] {
   color: var(--warn);
 }
 
-/* ---------- 分段选择器 ---------- */
-.seg {
-  display: flex;
-  gap: 6px;
-  padding: 5px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-}
-.seg-btn {
-  flex: 1;
-  height: 40px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--muted);
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
-  white-space: nowrap;
+/* ---------- 整页随机背景 ---------- */
+.page-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 0 6px;
+  pointer-events: none;
 }
-.seg-btn.active {
-  background: var(--surface-solid);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ---------- 壁纸 ---------- */
-.wp-frame {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-}
-.wp-frame img {
+.page-bg img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
   opacity: 0;
-  transition: opacity 0.55s ease;
+  transform: scale(1.05);
+  filter: blur(2px) saturate(1.06);
+  transition: opacity 1.2s ease;
 }
-.wp-frame img.show {
+.page-bg img.show {
   opacity: 1;
 }
-.wp-loading {
+.page-bg::after {
+  content: "";
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  background: var(--surface-2);
-  transition: opacity 0.3s ease;
-}
-.wp-loading.hide {
   opacity: 0;
-  pointer-events: none;
+  transition: opacity 1.2s ease;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg) 62%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 76%, transparent) 55%,
+    color-mix(in srgb, var(--bg) 90%, transparent) 100%
+  );
 }
-.wp-error {
-  position: absolute;
-  inset: 0;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  text-align: center;
-  padding: 16px;
-  font-size: 12.5px;
-  color: var(--muted);
-  background: var(--surface-2);
-}
-.wp-error.show {
-  display: flex;
-}
-.wp-error svg {
-  width: 26px;
-  height: 26px;
-  color: var(--warn);
-}
-.wp-tip {
-  margin: 0;
-  font-size: 11px;
-  color: var(--muted-2);
-  text-align: center;
-}
-
-/* ---------- 按钮行 ---------- */
-.btn-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-.btn-row .btn {
-  height: 44px;
-  font-size: 13.5px;
+body.bg-ready .page-bg::after {
+  opacity: 1;
 }
 
 /* ---------- 动画 ---------- */
@@ -1179,20 +1104,10 @@ textarea[readonly] {
   textarea { min-height: 150px; }
   .btn { height: 46px; font-size: 14.5px; }
 }
-@media (max-width: 420px) {
-  .tab-arrow {
-    display: none;
-  }
+@media (max-width: 400px) {
   .tab {
-    font-size: 12.5px;
-    gap: 5px;
-  }
-  .tab svg {
-    width: 14px;
-    height: 14px;
-  }
-  .wp-frame {
-    aspect-ratio: 3 / 2;
+    font-size: 13px;
+    gap: 6px;
   }
 }
 @media (max-width: 360px) {

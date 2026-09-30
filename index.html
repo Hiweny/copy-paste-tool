@@ -23,6 +23,9 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="page-bg" id="pageBg" aria-hidden="true">
+      <img id="bgImg" alt="" />
+    </div>
     <div class="aurora"></div>
 
     <!-- 图标精灵 -->
@@ -106,20 +109,6 @@
       <symbol id="i-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
         <path d="M12 3a9 9 0 1 0 9 9" />
       </symbol>
-      <symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="4" width="18" height="16" rx="2.6" />
-        <circle cx="8.5" cy="9.5" r="1.6" />
-        <path d="m4 17 4.5-4.5a1.6 1.6 0 0 1 2.3 0L15 17" />
-        <path d="m14 15 1.8-1.8a1.6 1.6 0 0 1 2.3 0L20 15.3" />
-      </symbol>
-      <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 4h6v6" /><path d="M20 4 11 13" />
-        <path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
-      </symbol>
-      <symbol id="i-dice" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="3.4" />
-        <path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01" />
-      </symbol>
     </svg>
 
     <header class="app-header">
@@ -150,13 +139,10 @@
       <div class="tabs" id="tabs" data-active="upload">
         <span class="tab-thumb"></span>
         <button class="tab active" type="button" data-tab="upload">
-          <svg><use href="#i-upload" /></svg>上传<span class="tab-arrow"> → </span>复制
+          <svg><use href="#i-upload" /></svg>上传 → 复制
         </button>
         <button class="tab" type="button" data-tab="download">
-          <svg><use href="#i-download" /></svg>输入<span class="tab-arrow"> → </span>下载
-        </button>
-        <button class="tab" type="button" data-tab="wallpaper">
-          <svg><use href="#i-image" /></svg>随机壁纸
+          <svg><use href="#i-download" /></svg>输入 → 下载
         </button>
       </div>
 
@@ -301,50 +287,6 @@
           <button class="btn btn-primary btn-block" id="downloadBtn" type="button">
             <svg><use href="#i-download" /></svg>下载文件
           </button>
-        </div>
-      </section>
-
-      <!-- 面板三：随机壁纸 -->
-      <section class="card panel" id="panel-wallpaper">
-        <div class="card-head">
-          <h2 class="card-title">
-            <span class="ct-ico"><svg><use href="#i-image" /></svg></span>
-            随机二次元壁纸
-          </h2>
-          <p class="card-sub">一键获取随机壁纸，可下载或查看原图</p>
-        </div>
-        <div class="card-body">
-          <div class="wp-frame" id="wpFrame">
-            <img id="wpImg" alt="随机壁纸" />
-            <div class="wp-loading" id="wpLoading"><span class="spinner"></span></div>
-            <div class="wp-error" id="wpError">
-              <svg><use href="#i-warn" /></svg>
-              <span>加载失败，点「换一张」重试</span>
-            </div>
-          </div>
-
-          <div class="field">
-            <span class="label"><svg><use href="#i-dice" /></svg>图片源</span>
-            <div class="seg" id="wpSources"></div>
-          </div>
-
-          <div class="field" id="wpOrientField">
-            <span class="label"><svg><use href="#i-image" /></svg>方向</span>
-            <div class="seg" id="wpOrients"></div>
-          </div>
-
-          <button class="btn btn-primary btn-block" id="wpShuffleBtn" type="button">
-            <svg><use href="#i-refresh" /></svg>换一张
-          </button>
-          <div class="btn-row">
-            <button class="btn btn-ghost btn-row-item" id="wpDownload" type="button">
-              <svg><use href="#i-download" /></svg>下载
-            </button>
-            <button class="btn btn-ghost btn-row-item" id="wpOpen" type="button">
-              <svg><use href="#i-external" /></svg>打开原图
-            </button>
-          </div>
-          <p class="wp-tip" id="wpTip">图片来自第三方图源，每次获取均为随机内容</p>
         </div>
       </section>
 
