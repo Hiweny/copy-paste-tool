@@ -995,7 +995,6 @@
         bgImg.src = url;
         raf(function () {
           bgImg.classList.add("show");
-          document.body.classList.add("bg-ready");
         });
       };
       probe.onerror = tryNext;
@@ -1007,17 +1006,24 @@
 
   // 横竖屏切换时，重新获取与方向匹配的背景
   var bgLandscape = window.innerWidth >= window.innerHeight;
+  var bgLastWidth = window.innerWidth;
   var onBgResize = debounce(function () {
-    var landscape = window.innerWidth >= window.innerHeight;
+    var w = window.innerWidth;
+    // 宽度不变说明只是移动端地址栏收展引起的高度变化 —— 直接忽略，避免背景跳动
+    if (w === bgLastWidth) return;
+    bgLastWidth = w;
+    var landscape = w >= window.innerHeight;
     if (landscape !== bgLandscape) {
       bgLandscape = landscape;
       bgImg.classList.remove("show");
-      document.body.classList.remove("bg-ready");
       loadPageBackground();
     }
   }, 400);
   window.addEventListener("resize", onBgResize);
-  window.addEventListener("orientationchange", onBgResize);
+  window.addEventListener("orientationchange", function () {
+    bgLastWidth = -1; // 方向变化时强制重新判断
+    onBgResize();
+  });
 
   /* ---------------- 页面级错误兜底 ---------------- */
   window.addEventListener("error", function (e) {

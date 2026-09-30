@@ -1025,10 +1025,17 @@ textarea[readonly] {
 /* ---------- 整页随机背景 ---------- */
 .page-bg {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  /* 固定为大视口高度(lvh)，避免移动端地址栏收展时背景跳变 */
+  height: 100vh;
+  height: 100lvh;
   z-index: -2;
   overflow: hidden;
   pointer-events: none;
+  /* 提升为独立图层，规避 iOS fixed 元素抖动 */
+  transform: translateZ(0);
 }
 .page-bg img {
   width: 100%;
@@ -1036,28 +1043,21 @@ textarea[readonly] {
   object-fit: cover;
   display: block;
   opacity: 0;
-  transform: scale(1.05);
-  filter: blur(2px) saturate(1.06);
-  transition: opacity 1.2s ease;
+  /* 仅降低亮度：不加模糊、不加暗度遮罩 */
+  filter: brightness(0.8);
+  transition: opacity 1.2s ease, filter 0.35s ease;
 }
 .page-bg img.show {
   opacity: 1;
 }
-.page-bg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 1.2s ease;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--bg) 62%, transparent) 0%,
-    color-mix(in srgb, var(--bg) 76%, transparent) 55%,
-    color-mix(in srgb, var(--bg) 90%, transparent) 100%
-  );
+/* 深色模式下进一步压暗背景 */
+:root[data-theme="dark"] .page-bg img {
+  filter: brightness(0.45);
 }
-body.bg-ready .page-bg::after {
-  opacity: 1;
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .page-bg img {
+    filter: brightness(0.45);
+  }
 }
 
 /* ---------- 动画 ---------- */
